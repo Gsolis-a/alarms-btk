@@ -8,6 +8,7 @@
 
 #
 
+from operator import mod
 import psycopg2
 
 import psycopg2.extras
@@ -36,7 +37,9 @@ ALARM_MINIMUM_TOTAL = 50
 
 ALARM_THRESHOLD = 0.50
 
-def get_top_alarm(dd, title):  # sourcery skip: comprehension-to-generator, simplify-len-comparison, use-fstring-for-formatting
+
+# sourcery skip: comprehension-to-generator, simplify-len-comparison, use-fstring-for-formatting
+def get_top_alarm(dd, title):
 
     edd = {k: dd[k] for k in dd if k != 'OK'}
 
@@ -54,40 +57,41 @@ def get_top_alarm(dd, title):  # sourcery skip: comprehension-to-generator, simp
 
         return None
 
+
 def slack_notify(chan, msg):
 
     url = 'https://u9f3q68aw8.execute-api.sa-east-1.amazonaws.com/v1/slack'
 
-    body = json.dumps({'product':os.path.basename(__file__), 'severity':'ERROR', 'message':msg, 'channel':chan})
+    body = json.dumps({'product': os.path.basename(__file__),
+                      'severity': 'ERROR', 'message': msg, 'channel': chan})
 
-    requests.post(url, data=body, headers={'Content-Type':'application/json'})
-    
-def back_off_alarm(alarm):
+    requests.post(url, data=body, headers={'Content-Type': 'application/json'})
+
+
+def back_off_alarm(alarm):  # sourcery skip: remove-empty-nested-block, remove-redundant-if
 
     r = redis.Redis(
         host='hostname',
-        port='port', 
+        port='port',
         password='password')
 
-    if alarm_iter_value := r.get('iter_counter'):
-        
-        r.set('iter_counter', int(alarm_iter_value + 1))
-        
-        trigger_alarmg_iter_values = {1, 2 ,4 ,8 ,16, 32, 64}
+    if alarm_iter_value := r.get(f'tbk-alarm{alarm}'):
 
+        r.set('iter_counter', int(alarm_iter_value + 1))
+
+        trigger_alarmg_iter_values = {1, 2, 4, 8, 16, 32, 64}
+        max_timer_trigger = max(trigger_alarmg_iter_values)
         if alarm_iter_value in trigger_alarmg_iter_values:
-            pass
+            r.set('iter_counter', int(alarm_iter_value + 1))
+            return True
+        if alarm_iter_value > max_timer_trigger:
+            res_add = alarm_iter_value + max_timer_trigger
+            return res_add % 2 == 0
             
-            # if alarm_iter_value > max(trigger_alarmg_iter_values):
-                
-                
-            # else:
-            #     return True
-            
-            # return False
-        
     else:
-        r.set('iter_counter', 1)
+        r.mset({f'tbk-alarm{alarm}', 1})
+        return True
+
 
 def main():
 
@@ -137,8 +141,7 @@ def main():
 
     es = get_top_alarm(cards_all, 'Total')
 
-    if es is not None:
-
+    if es is not None and back_off_alarm(es):
         errors.append(es)
 
     for brand in cards_per_brand:
@@ -159,13 +162,15 @@ def main():
 
     if errors != []:
 
-        final_error = 'Ultimos {} minutos:\n'.format(ALARM_SCAN_MINUTES) + '\n'.join(errors).strip()
+        final_error = 'Ultimos {} minutos:\n'.format(
+            ALARM_SCAN_MINUTES) + '\n'.join(errors).strip()
 
         if to_slack:
 
             slack_notify('#alarmas-transbank', final_error)
 
         print(final_error)
+
 
 if __name__ == '__main__':
 
