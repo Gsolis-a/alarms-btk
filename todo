@@ -1,0 +1,11 @@
+# 'tbk-alarm:'+ALARM_SCAN_MINUTES+':brand:'+brand
+# 'tbk-alarm:'+ALARM_SCAN_MINUTES+':total'
+
+# todas las lalves de alarma en redis arreglo en
+# arreglo vacio con llaves alarmadas
+
+# documentar y estandarizar open vpn a produccion
+# creacion de usuarios documentados
+# cards_alls:defaultdict(<class 'int'>, {'OK': 2838, 'RE-INTENTE (074)': 5, 'RE-INTENTE (050)': 8})
+
+# f'tbkalar:{ALARM_SCAN_MINUTES}:{title}:'

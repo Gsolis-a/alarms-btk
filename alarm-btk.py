@@ -8,7 +8,6 @@
 
 #
 
-from operator import mod
 import psycopg2
 
 import psycopg2.extras
@@ -68,32 +67,33 @@ def slack_notify(chan, msg):
     requests.post(url, data=body, headers={'Content-Type': 'application/json'})
 
 
-def back_off_alarm(alarm):  # sourcery skip: remove-empty-nested-block, remove-redundant-if
+def back_off_alarm(alarm, r):
 
-    r = redis.Redis(
-        host='hostname',
-        port='port',
-        password='password')
+    # if there is acounter for alarm in redis
+    if alarm_iter_value := r.get(alarm):
 
-    if alarm_iter_value := r.get(f'tbk-alarm{alarm}'):
+        r.set(alarm, int(alarm_iter_value + 1))
 
-        r.set('iter_counter', int(alarm_iter_value + 1))
+        trigger_alarmg_iter_values = [1, 2, 4, 8, 16, 32, 64]
+        max_timer_trigger = trigger_alarmg_iter_values[-1]
 
-        trigger_alarmg_iter_values = {1, 2, 4, 8, 16, 32, 64}
-        max_timer_trigger = max(trigger_alarmg_iter_values)
+        # if the counter number is in the trigger list
         if alarm_iter_value in trigger_alarmg_iter_values:
-            r.set('iter_counter', int(alarm_iter_value + 1))
+            r.set(alarm, int(alarm_iter_value + 1))
             return True
+
+        # if the trigger counter is  greater than max trigger number in list
         if alarm_iter_value > max_timer_trigger:
             res_add = alarm_iter_value + max_timer_trigger
+            r.set(alarm, int(alarm_iter_value + 1))
             return res_add % 2 == 0
-            
+
     else:
-        r.mset({f'tbk-alarm{alarm}', 1})
+        r.set({alarm, 1})
         return True
 
 
-def main():
+def main():  # sourcery skip: merge-list-append, move-assign
 
     global ALARM_SCAN_MINUTES, ALARM_MINIMUM_TOTAL, ALARM_THRESHOLD
 
@@ -139,26 +139,47 @@ def main():
 
     errors = []
 
-    es = get_top_alarm(cards_all, 'Total')
+    rcon = {
+        'host': 'monitor-cluster.yjsdqt.ng.0001.sae1.cache.amazonaws.com', 'port': 6379}
+    r = redis(**rcon)
 
-    if es is not None and back_off_alarm(es):
+    es = get_top_alarm(cards_all, 'Total')  # total de elementos
+
+    redis_alarm_all_cards = f'btk-alarms:{ALARM_SCAN_MINUTES}:all_cards'
+
+    persistent_alarms = []
+    alarms_to_delete = []
+
+    if es is not None and back_off_alarm(redis_alarm_all_cards, r):
         errors.append(es)
+
+    else:
+        alarms_to_delete.append(redis_alarm_all_cards)
 
     for brand in cards_per_brand:
 
         es = get_top_alarm(cards_per_brand[brand], 'Marca: ' + (brand or ''))
+        brand_alarm_key = f'btk-alarms:{ALARM_SCAN_MINUTES}:{brand}'
 
-        if es is not None:
-
+        if es is not None and back_off_alarm(brand_alarm_key, r):
+            persistent_alarms.append(brand_alarm_key)
             errors.append(es)
+        else:
+            alarms_to_delete.append(brand_alarm_key)
 
     for bank in cards_per_bank:
 
+        bank_alarm_key = f'btk-alarms:{ALARM_SCAN_MINUTES}:{bank}'
         es = get_top_alarm(cards_per_bank[bank], 'Banco: ' + (bank or ''))
 
-        if es is not None:
+        if es is not None and back_off_alarm(bank_alarm_key, r):
 
+            persistent_alarms.append(bank_alarm_key)
             errors.append(es)
+        else:
+            alarms_to_delete.append(bank_alarm_key)
+
+    # llaves de redis inici - llaves alarmadas en este ciclo
 
     if errors != []:
 
