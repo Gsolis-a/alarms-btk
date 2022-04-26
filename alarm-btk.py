@@ -38,7 +38,7 @@ ALARM_THRESHOLD = 0.50
 
 
 # sourcery skip: comprehension-to-generator, simplify-len-comparison, use-fstring-for-formatting
-def get_top_alarm(dd, title):
+def get_top_alarm(dd, title):  # sourcery skip: simplify-len-comparison
 
     edd = {k: dd[k] for k in dd if k != 'OK'}
 
@@ -67,35 +67,49 @@ def slack_notify(chan, msg):
     requests.post(url, data=body, headers={'Content-Type': 'application/json'})
 
 
-def back_off_alarm(alarm, r):
+def back_off_alarm(alarm, pipe, trigger_timer, h_name):
 
     # if there is acounter for alarm in redis
-    if alarm_iter_value := r.get(alarm):
+    if alarm_iter_value := int(pipe.hget(h_name, alarm).decode()):
 
-        r.set(alarm, int(alarm_iter_value + 1))
-
-        trigger_alarmg_iter_values = [1, 2, 4, 8, 16, 32, 64]
-        max_timer_trigger = trigger_alarmg_iter_values[-1]
-
-        # if the counter number is in the trigger list
-        if alarm_iter_value in trigger_alarmg_iter_values:
-            r.set(alarm, int(alarm_iter_value + 1))
+        # if the counter number is in the trigger list display alarm
+        if alarm_iter_value in trigger_timer:
+            pipe.hset(h_name, alarm, int(alarm_iter_value + 1)) 
             return True
 
         # if the trigger counter is  greater than max trigger number in list
-        if alarm_iter_value > max_timer_trigger:
-            res_add = alarm_iter_value + max_timer_trigger
-            r.set(alarm, int(alarm_iter_value + 1))
-            return res_add % 2 == 0
+        if alarm_iter_value > trigger_timer[-1]:
+            pipe.hset(h_name, alarm, int(alarm_iter_value + 1))
+            # if counter is mod dysplay alarm
+            return alarm_iter_value % 2 == 0
 
+    # first iteration on alarm
     else:
-        r.set({alarm, 1})
+        pipe.hset(h_name, alarm, int(alarm_iter_value + 1))
         return True
+
+def alarm_resolver(LIST_FOR_ALARM_TIMER_TRIGGER, errors, pipe, es, alarms_to_delete, all_or_bank_or_brand, value):
+
+    h_name = 'tbk-alarms'
+    
+    redis_alarm_key = f'{h_name}:{ALARM_SCAN_MINUTES}:{all_or_bank_or_brand}:{value}'
+
+    # the alarm doesn't require to persist on redis
+    if es is None:
+        pipe.hdel(h_name, redis_alarm_key)# elimino de redis si es none
+        return
+
+    # if the alarm exists and needs to be alerted
+    elif back_off_alarm(redis_alarm_key, pipe, LIST_FOR_ALARM_TIMER_TRIGGER, h_name): # si es verdadero la alarmo
+        errors.append(es)
+
+    # elif es is not None and not back_off_alarm(redis_alarm_key, r):# si es falso no alarmo pero mantengo
+    #     persistent_alarms.append(redis_alarm_key)
 
 
 def main():  # sourcery skip: merge-list-append, move-assign
 
-    global ALARM_SCAN_MINUTES, ALARM_MINIMUM_TOTAL, ALARM_THRESHOLD
+    global ALARM_SCAN_MINUTES, ALARM_MINIMUM_TOTAL, ALARM_THRESHOLD, LIST_FOR_ALARM_TIMER_TRIGGER
 
     try:
 
@@ -114,8 +128,12 @@ def main():  # sourcery skip: merge-list-append, move-assign
         ALARM_MINIMUM_TOTAL = int(sys.argv[3])
 
     if len(sys.argv) >= 5:
-
+    
         ALARM_THRESHOLD = float(sys.argv[4])
+
+    if len(sys.argv) >= 6:
+
+        LIST_FOR_ALARM_TIMER_TRIGGER = float(sys.argv[5].split(','))
 
     cards_all = defaultdict(int)
 
@@ -141,45 +159,26 @@ def main():  # sourcery skip: merge-list-append, move-assign
 
     rcon = {
         'host': 'monitor-cluster.yjsdqt.ng.0001.sae1.cache.amazonaws.com', 'port': 6379}
-    r = redis(**rcon)
+    r = redis.Redis(**rcon)
+    with r.pipeline() as pipe:
 
-    es = get_top_alarm(cards_all, 'Total')  # total de elementos
+        persistent_alarms = []
+        alarms_to_delete = []
 
-    redis_alarm_all_cards = f'btk-alarms:{ALARM_SCAN_MINUTES}:all_cards'
+        es = get_top_alarm(cards_all, 'Total')  # total de elementos
+        alarm_resolver(LIST_FOR_ALARM_TIMER_TRIGGER, errors, pipe, es, persistent_alarms, alarms_to_delete, 'Total')
 
-    persistent_alarms = []
-    alarms_to_delete = []
+        for brand in cards_per_brand:
 
-    if es is not None and back_off_alarm(redis_alarm_all_cards, r):
-        errors.append(es)
+            es = get_top_alarm(cards_per_brand[brand], 'Marca: ' + (brand or ''))
+            alarm_resolver(LIST_FOR_ALARM_TIMER_TRIGGER, errors, pipe, es, persistent_alarms, alarms_to_delete, 'brand', brand)
 
-    else:
-        alarms_to_delete.append(redis_alarm_all_cards)
+        for bank in cards_per_bank:
 
-    for brand in cards_per_brand:
+            es = get_top_alarm(cards_per_bank[bank], 'Banco: ' + (bank or ''))
+            alarm_resolver(LIST_FOR_ALARM_TIMER_TRIGGER, errors, pipe, es, persistent_alarms, alarms_to_delete, 'Bank', bank)
 
-        es = get_top_alarm(cards_per_brand[brand], 'Marca: ' + (brand or ''))
-        brand_alarm_key = f'btk-alarms:{ALARM_SCAN_MINUTES}:{brand}'
-
-        if es is not None and back_off_alarm(brand_alarm_key, r):
-            persistent_alarms.append(brand_alarm_key)
-            errors.append(es)
-        else:
-            alarms_to_delete.append(brand_alarm_key)
-
-    for bank in cards_per_bank:
-
-        bank_alarm_key = f'btk-alarms:{ALARM_SCAN_MINUTES}:{bank}'
-        es = get_top_alarm(cards_per_bank[bank], 'Banco: ' + (bank or ''))
-
-        if es is not None and back_off_alarm(bank_alarm_key, r):
-
-            persistent_alarms.append(bank_alarm_key)
-            errors.append(es)
-        else:
-            alarms_to_delete.append(bank_alarm_key)
-
-    # llaves de redis inici - llaves alarmadas en este ciclo
+        pipe.execute()
 
     if errors != []:
 
@@ -191,7 +190,6 @@ def main():  # sourcery skip: merge-list-append, move-assign
             slack_notify('#alarmas-transbank', final_error)
 
         print(final_error)
-
 
 if __name__ == '__main__':
 
