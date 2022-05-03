@@ -8,21 +8,16 @@
 
 #
 
-import psycopg2
-
-import psycopg2.extras
-
+import argparse
+import json
+import os
+import sys
 from collections import defaultdict
 
+import psycopg2
+import psycopg2.extras
 import redis
-
 import requests
-
-import json
-
-import sys
-
-import os
 
 # minutes to scan
 
@@ -35,6 +30,9 @@ ALARM_MINIMUM_TOTAL = 50
 # alarm if the failure percentage is (strictly) more than this
 
 ALARM_THRESHOLD = 0.50
+
+# default value for the alarm trigger
+LIST_FOR_ALARM_TIMER_TRIGGER = 1
 
 
 # sourcery skip: comprehension-to-generator, simplify-len-comparison, use-fstring-for-formatting
@@ -73,22 +71,24 @@ def alarm_resolver(trigger_timer, errors, pipe, es, all_or_bank_or_brand, value,
 
     alarm = f'{h_name}:{ALARM_SCAN_MINUTES}:{all_or_bank_or_brand}:{value}'
 
-    alarm_iter_value = int(r.hget(h_name, alarm).decode())
-
     # no alarm to alarm
     if es is None:
         return
 
     # elimino de redis si "es" es none y la persistencia existe
-    elif alarm_iter_value:
+    elif r.exist(h_name, alarm) > 0:
         pipe.hdel(h_name, alarm)
+        return
 
-    if not alarm_iter_value:
+    # si no existe persistencia la crea y la alarma
+    if r.exist(h_name, alarm) == 0:
         pipe.hset(h_name, alarm, 1)
         errors.append(es)
         return
 
     # if the counter number is in the trigger list display alarm
+    alarm_iter_value = int(r.get(h_name, alarm).decode())
+
     if alarm_iter_value in trigger_timer:
         pipe.hset(h_name, alarm, int(alarm_iter_value + 1))
         errors.append(es)
@@ -105,31 +105,28 @@ def alarm_resolver(trigger_timer, errors, pipe, es, all_or_bank_or_brand, value,
 
 def main():  # sourcery skip: merge-list-append, move-assign
 
+    parser = argparse.ArgumentParser(description='A script to check if the alarms are alarmables on the corresponding threshold')
+    parser.add_argument('-slk', nargs= 1, type=int, help='To slack notification')
+    parser.add_argument('-sm', nargs= 1, type=int, help='Alarm scan minutes')
+    parser.add_argument('-mt', nargs= 1, type=int, help=' Alarm minimun total')
+    parser.add_argument('-at', nargs= 1, type=int, help='Alarm threshold')
+    parser.add_argument('-tt', nargs='?', type=int, help='Trigger list timer')
+    args = parser.parse_args()
+
     global ALARM_SCAN_MINUTES, ALARM_MINIMUM_TOTAL, ALARM_THRESHOLD, LIST_FOR_ALARM_TIMER_TRIGGER
 
     try:
 
-        to_slack = int(sys.argv[1]) != 0
+        to_slack = args.slk
 
     except IndexError:
 
         to_slack = True
 
-    if len(sys.argv) >= 3:
-
-        ALARM_SCAN_MINUTES = int(sys.argv[2])
-
-    if len(sys.argv) >= 4:
-
-        ALARM_MINIMUM_TOTAL = int(sys.argv[3])
-
-    if len(sys.argv) >= 5:
-
-        ALARM_THRESHOLD = float(sys.argv[4])
-
-    if len(sys.argv) >= 6:
-        # parse args y default 1
-        LIST_FOR_ALARM_TIMER_TRIGGER = [int(x) for x in sys.argv[5].split(',')]
+    ALARM_SCAN_MINUTES = args.sm
+    ALARM_MINIMUM_TOTAL = args.mt
+    ALARM_THRESHOLD = args.at
+    LIST_FOR_ALARM_TIMER_TRIGGER = args.tt
 
     cards_all = defaultdict(int)
 
@@ -192,5 +189,3 @@ def main():  # sourcery skip: merge-list-append, move-assign
 if __name__ == '__main__':
     
     main()
-
-# my_alarms = 'tbk-alarm:60:total' + ['tbk-alarm:60:brand:'+x for x in cards_per_brand] + ['tbk-alarm:60:bank:'+x for x in cards_per_bank]

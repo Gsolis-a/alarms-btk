@@ -1,0 +1,58 @@
+ideas para informacion que podamos obtener  clientes transacciones terminales de
+
+pagos adquirencias de
+
+info interesante orientado a operaciones obtener
+clientes dejo de usar el terminal
+1m transacciones diarias
+
+inactividad fraude NO\
+bastion admin@gw.redelcom.cl ->bastion
+maquina admin@10.26.0.69 -> script tbk
+bastion -> monitor ip 69 (mi scrtip) ip 27 redelcom pass select * from adquirencia_tarjetas
+
+
+ml sobre base de datos de transacciones informacion extraccion util
+patrones anomalias orientados a servicio al cliente 
+
+generacion
+embedings deldescriptores de identidad
+clasificacion supervisada aka etiqueta de la data
+
+knn ML
+algoritmos para clusterizar knn(super vi)
+
+k-means (no super) clusterizar a mapa 2d mapmas analisis para identificar 
+
+hyper parameters (aka cosas que peudo cambiar al codigo) ej numero de clusters
+
+comportamientos extra;os 
+ tipo de cliente clusterisar
+
+ dejar solo transacciones de pago tarjeta billeteras
+
+ transacciones_credito tabla principal primarykey id_tx
+
+ terminal(aka codigo de terminal) para
+ (cliente por sucursal) 
+ clasificar un terminal en tiempo de respuesta  0 transacciones para 1 o 2 desconeccionesy conecciones en el dia
+ muchas conecciones y desconecciones analisas por que
+ tipo_tx = transaccion por terminal % altos de reversas vs el total de transacciones
+ tipo_tarjeta
+ cod_comewrcio == clienteprimary key en transbank
+ pan 6 primeros digitos 
+ numero_de cuotas
+ monto de transacciones
+ mensage_visor string que manda errores (limpiar data y noirmalizar codigo de errores)-> a terminales o a horas de transacciones
+
+estado_tx informa estadfo de la transaccion se hizo o no c ok para bien o mal, E error de la transaccion/falla de comunicacion ,A en curso, P  algo en curso tambien.
+hora_iniswitch hora de llegada de la transaccion al switch maximo hora por dia horafin_switch-hora_init_switch(tiempo que duro la transaccion limpiar data para fin_switch)
+semana del a;o hora del dia, mes del a;o
+cliente_id id en redelcom
+id_tarjeta
+tipo_tarjeta 31 pago adquirencia debito 30 pago adquirencia credito adquirencia_tarjetas  (tipo_tarjeta -1 = efectivo)
+from transacciones_credito where hora_ini_switch between and(tipo_tarjeta ='-1' or tipo_tarjeta = in (selec id_tarjeta from adquirencia_tarjetas))
+
+/copy (query) to nombrearchivo delimiter ':' csv header;
+
+
