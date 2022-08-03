@@ -1,0 +1,100 @@
+                                      Table "public.transacciones_credito"
+          Column          |            Type             | Collation | Nullable |            Default
+--------------------------+-----------------------------+-----------+----------+--------------------------------
+ id_tx                    | character varying(50)       |           |          |
+ cliente                  | character varying(3)        |           |          |
+ zona                     | character varying(2)        |           |          |
+ zona_vend                | character varying(4)        |           |          |
+ terminal                 | character varying(20)       |           |          |
+ id_externo               | character varying(50)       |           |          |
+ tipo_tx                  | character varying(4)        |           |          |
+ tipo_tarjeta             | character varying(10)       |           |          |
+ cod_comercio             | character varying(8)        |           |          |
+ codaut_anula             | character varying(12)       |           |          |
+ pan                      | text                        |           |          |
+ rut_cliente              | text                        |           |          |
+ tipo_pago                | character varying(1)        |           |          |
+ n_cuotas                 | character varying(2)        |           |          |
+ tipo_doc_venta           | character varying(1)        |           |          |
+ n_doc_venta              | character varying(8)        |           |          |
+ track2                   | text                        |           |          |
+ clave_emisor             | character varying(2)        |           |          |
+ cod_promo                | character varying(6)        |           |          |
+ codaut                   | character varying(20)       |           |          |
+ estado_epago             | character varying(10)       |           |          |
+ estado_msg_campana       | character varying(1)        |           |          |
+ estado_msg_voucher       | character varying(1)        |           |          |
+ estado_msg_visor         | character varying(1)        |           |          |
+ fecha_vencimiento        | character varying(8)        |           |          |
+ hora_origen              | timestamp without time zone |           |          |
+ max_pago                 | character varying(16)       |           |          |
+ monto                    | character varying(17)       |           |          |
+ motivo_estado_epago      | character varying(2)        |           |          |
+ msg_camp_l1              | character varying(2048)     |           |          |
+ msg_camp_l2              | character varying(2048)     |           |          |
+ msg_camp_l3              | character varying(2048)     |           |          |
+ msg_visor                | text                        |           |          |
+ msg_voucher              | character varying(2048)     |           |          |
+ repactacion              | character varying(1)        |           |          |
+ tipo_cliente             | character varying(1)        |           |          |
+ valor_cuota              | character varying(16)       |           |          |
+ agent_id                 | character varying(3)        |           |          |
+ agent_type               | character varying(1)        |           |          |
+ estado_tx                | character varying(5)        |           |          |
+ hora_conf_recepcion      | timestamp without time zone |           |          |
+ hora_fin_epago           | timestamp without time zone |           |          |
+ hora_fin_ppost           | timestamp without time zone |           |          |
+ hora_fin_pprev           | timestamp without time zone |           |          |
+ hora_fin_switch          | timestamp without time zone |           |          |
+ hora_ini_epago           | timestamp without time zone |           |          |
+ hora_ini_ppost           | timestamp without time zone |           |          |
+ hora_ini_pprev           | timestamp without time zone |           |          |
+ hora_ini_switch          | timestamp without time zone |           |          |
+ movil                    | character varying(20)       |           |          |
+ fecha_contable           | character varying(8)        |           |          |
+ codigo_propio            | character varying(15)       |           |          |
+ msg_confirmacion         | character varying(4096)     |           |          |
+ cod_ppost                | character varying(50)       |           |          |
+ estado_ppost             | character varying(1)        |           |          |
+ fecha_negativo           | character varying(8)        |           |          |
+ numero_negativo          | character varying(8)        |           |          |
+ fecha_proceso            | character varying(8)        |           |          |
+ codigo_proceso           | character varying(3)        |           |          |
+ fecha_pago               | character varying(8)        |           |          |
+ camion                   | character varying(20)       |           |          |
+ estado_cont              | character varying(10)       |           |          | 'P'::character varying
+ fecha_cont               | timestamp without time zone |           |          |
+ codigo_cont              | character varying(20)       |           |          |
+ codigo_aprobacion        | character varying(50)       |           |          |
+ terminal_comercio        | character varying(20)       |           |          |
+ estado_ttel              | character varying(10)       |           |          |
+ codigo_cierre            | character varying(5)        |           |          |
+ ts_cierre                | timestamp without time zone |           |          |
+ fecha_ajuste_proceso     | timestamp without time zone |           |          |
+ hora_cierre              | timestamp without time zone |           |          |
+ track1                   | text                        |           |          |
+ detalle_propio           | text                        |           |          |
+ msg_camp_l4              | text                        |           |          |
+ codaut_asociado          | text                        |           |          |
+ tarjeta_asociada         | text                        |           |          |
+ id_tx_venta              | text                        |           |          |
+ cliente_id               | text                        |           |          |
+ comision                 | double precision            |           |          |
+ cierre_pos_id            | integer                     |           |          |
+ id_tx_bci                | text                        |           |          |
+ saldo                    | double precision            |           |          |
+ estado_pos               | character(1)                |           |          |
+ data1                    | text                        |           |          |
+ data2                    | text                        |           |          |
+ erp_estado               | character varying(1)        |           |          |
+ erp_fecha                | timestamp without time zone |           |          |
+ rendida                  | integer                     |           |          | 0
+ tipo_comision            | text                        |           |          |
+ estado_api               | character(1)                |           |          | 'P'::bpchar
+ periodo                  | text                        |           |          | to_char(now(), 'YYYYMM'::text)
+ opciones_lectura_tarjeta | character(1)                |           |          |
+ tipo_lectura_tarjeta     | character(1)                |           |          |
+ propina                  | character varying(17)       |           |          | '0'::character varying
+ vuelto                   | character varying(17)       |           |          | '0'::character varying
+ id_proceso_conciliacion  | integer                     |           |          |
+ sucursal_id              | text                        |           |          | '0'::text

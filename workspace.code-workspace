@@ -1,0 +1,50 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "samtest",
+			"path": "..\\..\\aws\\samtest"
+		}
+	],
+	"settings": {},
+	"launch": {
+		"configurations": [
+			{
+				"type": "aws-sam",
+				"request": "direct-invoke",
+				"name": "lambda-sam:HelloWorldFunction (python3.9)",
+				"invokeTarget": {
+					"target": "template",
+					"templatePath": "C:/Users/Mike/Documents/aws/samtest/lambda-sam/template.yaml",
+					"logicalId": "HelloWorldFunction"
+				},
+				"lambda": {
+					"payload": {},
+					"environmentVariables": {}
+				}
+			},
+			{
+				"type": "aws-sam",
+				"request": "direct-invoke",
+				"name": "API lambda-sam:HelloWorldFunction (python3.9)",
+				"invokeTarget": {
+					"target": "api",
+					"templatePath": "C:/Users/Mike/Documents/aws/samtest/lambda-sam/template.yaml",
+					"logicalId": "HelloWorldFunction"
+				},
+				"api": {
+					"path": "/hello",
+					"httpMethod": "get",
+					"payload": {
+						"json": {}
+					}
+				},
+				"lambda": {
+					"runtime": "python3.9"
+				}
+			}
+		]
+	}
+}

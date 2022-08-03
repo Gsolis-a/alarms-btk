@@ -9,6 +9,7 @@ clientes dejo de usar el terminal
 inactividad fraude NO\
 bastion admin@gw.redelcom.cl ->bastion
 maquina admin@10.26.0.69 -> script tbk
+psql -h 10.26.0.27 -U redelcom redelcom
 bastion -> monitor ip 69 (mi scrtip) ip 27 redelcom pass select * from adquirencia_tarjetas
 
 
@@ -31,7 +32,8 @@ comportamientos extra;os
 
  dejar solo transacciones de pago tarjeta billeteras
 
- transacciones_credito tabla principal primarykey id_tx
+ 
+  tabla principal primarykey id_tx
 
  terminal(aka codigo de terminal) para
  (cliente por sucursal) 
@@ -50,9 +52,22 @@ hora_iniswitch hora de llegada de la transaccion al switch maximo hora por dia h
 semana del a;o hora del dia, mes del a;o
 cliente_id id en redelcom
 id_tarjeta
+
 tipo_tarjeta 31 pago adquirencia debito 30 pago adquirencia credito adquirencia_tarjetas  (tipo_tarjeta -1 = efectivo)
+
 from transacciones_credito where hora_ini_switch between and(tipo_tarjeta ='-1' or tipo_tarjeta = in (selec id_tarjeta from adquirencia_tarjetas))
 
-/copy (query) to nombrearchivo delimiter ':' csv header;
+
+/copy (query) to nombrearchivo delimiter ';' csv header;
+from
+pending numero_de_cuotas_cuotas
 
 
+\copy (select tipo_tx, tipo_tarjeta, cod_comercio, pan, n_cuotas, monto, msg_visor, estado_tx, hora_ini_switch, cliente_id, tipo_tarjeta from transacciones_credito where hora_ini_switch between '2022-04-26' and '2022-05-03' and select * from transacciones_credito tc LEFT OUTER JOIN binbase bb ON (substr(tc.pan, 1, 6)=bb.bin)LIMIT 3 and (tipo_tarjeta = '-1' or tipo_tarjeta in (select id_tarjeta from adquirencia_tarjetas))) to 'data.csv' delimiter ';' csv header;
+
+SELECT * FROM transacciones_credito tc LEFT OUTER JOIN binbase bb ON (substr(tc.pan, 1, 6)=bb.bin)LIMIT 3
+/home/admin/data.csv
+
+bancos como categorias o flas 0 si es el mismo 1 si es distinto
+
+promedio monto de pago para dividir y normalizar data 10000 aprox

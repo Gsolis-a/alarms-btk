@@ -12,6 +12,9 @@ import sys
 import os
 
 
+
+
+
 # minutes to scan
 ALARM_SCAN_MINUTES = 4
 # minimum number of total txs to consider alarming
@@ -34,8 +37,9 @@ def get_top_alarm(dd, title):
 
 def slack_notify(chan, msg):
     url = 'https://u9f3q68aw8.execute-api.sa-east-1.amazonaws.com/v1/slack'
-    body = json.dumps({'product':os.path.basename(__file__), 'severity':'ERROR', 'message':msg, 'channel':chan})
-    requests.post(url, data=body, headers={'Content-Type':'application/json'})
+    body = json.dumps({'product': os.path.basename(__file__),
+                      'severity': 'ERROR', 'message': msg, 'channel': chan})
+    requests.post(url, data=body, headers={'Content-Type': 'application/json'})
 
 
 def main():
@@ -82,10 +86,12 @@ def main():
             errors.append(es)
 
     if errors != []:
-        final_error = 'Ultimos {} minutos:\n'.format(ALARM_SCAN_MINUTES) + '\n'.join(errors).strip()
+        final_error = 'Ultimos {} minutos:\n'.format(
+            ALARM_SCAN_MINUTES) + '\n'.join(errors).strip()
         if to_slack:
             slack_notify('#alarmas-transbank', final_error)
         print(final_error)
+
 
 if __name__ == '__main__':
     main()

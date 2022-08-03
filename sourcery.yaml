@@ -1,0 +1,8 @@
+refactor:
+  python_version: '3.5'
+  skip:
+  
+  rule_types:
+  - refactoring
+  - suggestion
+  - comment
